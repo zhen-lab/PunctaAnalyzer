@@ -12,19 +12,28 @@
 // along with this file.  If not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import ij.*;
-import ij.process.*;
-import ij.gui.*;
-import java.awt.*;
-import ij.plugin.filter.*;
-import ij.io.*;
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
+import ij.process.FloatProcessor;
+import ij.process.Blitter;
+
+import ij.plugin.filter.PlugInFilter;
+
+import ij.gui.PlotWindow;
+import ij.gui.Roi;
+import ij.gui.PolygonRoi;
+
+import java.awt.Rectangle;
+
+import ij.io.FileSaver;
+
 
 public class Preprocessor_2 implements PlugInFilter {
 	ImagePlus imp;
 
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
-		return DOES_ALL;
+		return PlugInFilter.DOES_ALL;
 	}
 
 	public void run(ImageProcessor ip) {
