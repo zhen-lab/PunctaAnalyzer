@@ -1,0 +1,10 @@
+name: puncta-analyzer
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6.7
+  - numpy=1.18.1
+  - pandas=0.25.1
+  - matplotlib=3.1.3
+  - tifffile=2020.2.16
+  - scikit-image=0.16.2
