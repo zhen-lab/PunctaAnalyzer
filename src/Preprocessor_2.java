@@ -1,4 +1,6 @@
 import ij.ImagePlus;
+import ij.IJ;
+
 import ij.process.ImageProcessor;
 import ij.process.FloatProcessor;
 import ij.process.Blitter;
@@ -21,6 +23,45 @@ public class Preprocessor_2 implements PlugInFilter {
 	public int setup(String arg, ImagePlus imp) {
 		this.imp = imp;
 		return PlugInFilter.DOES_ALL;
+	}
+
+	public ImageProcessor smoothImage(ImageProcessor ip){
+		ImageProcessor smoothed = ip.duplicate();
+		smoothed.medianFilter();
+		smoothed.smooth();
+
+		return smoothed;
+	}
+
+	public ImageProcessor subtractSmoothedImageFromOriginal(ImageProcessor original, ImageProcessor smoothed, int height){
+		ImageProcessor bg = smoothed.duplicate();
+		int finalLength = bg.getWidth();
+		float[][] floatArray = bg.getFloatArray();
+
+		//reference row number
+		int refs = 5;
+		for (int i = 0; i < finalLength; i++){
+			
+			//diff is linear interpolated difference of each pixel.
+			float diff = (floatArray[i][refs - 1] - floatArray[i][height - refs]) / (height - refs * 2 + 1);
+			
+			for(int j = refs; j < height - refs ;j++){				
+				floatArray[i][j] = floatArray[i][j - 1] - diff; 
+			}
+		}
+
+		bg.setFloatArray(floatArray);
+
+		// subtruct backgound from cropped image.
+		ImageProcessor duplicate = original.duplicate();
+		duplicate.copyBits(bg, 0, 0, Blitter.SUBTRACT);
+
+		return duplicate;
+	}
+
+	public void saveTiff(ImagePlus i){
+		FileSaver fs = new FileSaver(i);
+		fs.saveAsTiff();
 	}
 
 	public void run(ImageProcessor ip) {
@@ -61,7 +102,7 @@ public class Preprocessor_2 implements PlugInFilter {
 		int roiHeight = 15;
 
 		int processedImageWidth = (int) totalRoiLength;
-		int processedImageHeight = roiHeight * 2 + 1;
+		int processedImageHeight = roiHeight * 2 + 1;  // processed image will be 31 pixels tall
 		ImageProcessor ip2 = new FloatProcessor(processedImageWidth, processedImageHeight);
 
 		double leftOver = 1.0;
@@ -106,39 +147,26 @@ public class Preprocessor_2 implements PlugInFilter {
 		}
 		
 		//smoothing
-		ImageProcessor ip3 = ip2.duplicate();
-		ip3.medianFilter();
-		ip3.smooth();
+		ImageProcessor smoothedImage = smoothImage(ip2);
 
 		//calculation of background: there should be better methods. but This is best with my ability for now.
 		//You may just use subtract "background" of ImageJ default function.
-		ImageProcessor ip4 = ip3.duplicate();
-		int finalLength = ip4.getWidth();
-		float[][] floatarray = ip4.getFloatArray();
+		ImageProcessor bgSubtracted = subtractSmoothedImageFromOriginal(ip2, smoothedImage, processedImageHeight);
 
-		//reference row number
-		int refs = 5;
-		for (int i=0; i < finalLength; i++){
-			//diff is linear interpolated difference of each pixel.
-			float diff = (floatarray[i][refs - 1] - floatarray[i][processedImageHeight - refs])/(processedImageHeight - refs * 2 + 1);
-			for(int j = refs; j < processedImageHeight - refs ;j++){				
-				floatarray[i][j] = floatarray[i][j - 1] - diff; 
-			}
-		}
-		ip4.setFloatArray(floatarray);
-		
-		//subtruct backgound from cropped image.
-		ImageProcessor ip5 = ip2.duplicate();
-		ip5.copyBits(ip4, 0, 0, Blitter.SUBTRACT);
+		ImageProcessor bgSubtractedShort = bgSubtracted.convertToShort(false);
 
-		//convertToShort(false) clamped without scaling, but sets negative valuse to 0. this is different from octave subtracition method that I wrote before.
-		ImageProcessor ip5short = ip5.convertToShort(false);
-		ImagePlus im5 = new ImagePlus("subtracted", ip5short);
-		im5.show();
-		
-		//our camera is 12bit, so save the 16 bit data.
-		FileSaver fs = new FileSaver(im5);
-		fs.saveAsText();
+		// sets negative values to 0
+		ImagePlus processedImage = new ImagePlus(this.imp.getTitle() + "-processed", bgSubtractedShort);
+
+		// brighten the processed image
+		// for presentation purposes
+		ImagePlus brightenedImage = processedImage.duplicate();
+		brightenedImage.setTitle(this.imp.getTitle() + "-brightened");
+		IJ.run(brightenedImage, "Enhance Contrast", "saturated=0.35");
+
+		// save as tiff file
+		saveTiff(processedImage);
+		saveTiff(brightenedImage);
 	}
 
 }
