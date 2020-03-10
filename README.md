@@ -1,4 +1,4 @@
-# PunctaAnalyzer
+# Puncta Analyzer
 Quantify puncta in images
 
 ## Requirements
