@@ -5,9 +5,29 @@ np.set_printoptions(threshold=np.inf)
 import matplotlib.pyplot as plt
 import tifffile
 
-from math import sqrt
-from skimage import feature
+from math import sqrt, ceil
+from skimage import feature, draw
 from skimage.color import rgb2gray
+
+def area_of_circle(radius):
+    return radius ** 2 * np.pi
+
+def puncta_density(puncta, img_width):
+    return len(puncta) / img_width
+
+def punctum_intensity(puncta_img, punctum):
+    y, x, r = punctum
+    center = (int(y), int(x))
+    radius = int(r)
+    
+    # get pixel coordinates at center inside circular area
+    pixel_y_coordinates, pixel_x_coordinates = draw.circle(int(x), int(y), radius)
+
+    # get pixel intensities at those coordinates
+    punctum_region_intensity_values = puncta_img[pixel_x_coordinates, pixel_y_coordinates]
+
+    # return average of these intensities
+    return np.mean(punctum_region_intensity_values)
 
 # A program to recognize puncta in an image 
 # see https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_blob.html#sphx-glr-auto-examples-features-detection-plot-blob-py
@@ -37,12 +57,28 @@ def puncta_analyzer(tiff_file_path, output_path, min_sigma, max_sigma, threshold
     # radius = sqrt(2) * sigma
     puncta[:, 2] = puncta[:, 2] * sqrt(2)
 
+    # compute puncta statistics
+    # save them as a csv
+    puncta_stats_columns = ['x', 'y', 'radius (approximation)', 'area (approximation)', 'centroid pixel intensity', 'average pixel intensity over punctum area']
+    puncta_stats = []
+    for punctum in puncta:
+        y, x, r = punctum
+        centroid_pixel_intensity = puncta_img[int(y)][int(x)]
+        area = area_of_circle(r)
+        punctum_intesity_over_area = punctum_intensity(puncta_img, punctum)
+        
+        puncta_stats.append([x, y, r, area, centroid_pixel_intensity, punctum_intesity_over_area])
+
+    numpy_puncta_stats = np.array(puncta_stats)
+    pandas_punca_stats = pd.DataFrame(data=numpy_puncta_stats, columns=puncta_stats_columns)
+
+    pandas_punca_stats.to_csv(output_path + 'puncta-stats.csv')
 
     if show_annotated:
         # show the puncta image
         fig, ax = plt.subplots(1)
         ax.set_title('puncta')
-        ax.imshow(np.invert(puncta_img), cmap=plt.cm.binary, aspect='equal')
+        ax.imshow(np.invert(puncta_img), cmap=plt.cm.binary, aspect='auto')
 
         # show where each recognized punctum is on the image
         for punctum in puncta:
@@ -51,23 +87,6 @@ def puncta_analyzer(tiff_file_path, output_path, min_sigma, max_sigma, threshold
             ax.add_patch(punctum_marker)
 
         plt.show()
-
-    # compute puncta statistics
-    # save them as a csv
-    # for each puncta get x, y, radius (approximate), area (approximate), distances ?, pixel intensity(x, y)
-
-    puncta_stats_columns = ['x', 'y', 'radius (approximation)', 'area (approximation)', 'pixel intensity']
-    puncta_stats = []
-    for punctum in puncta:
-        y, x, r = punctum
-        punctum_pixel_intensity = puncta_img[int(y)][int(x)]
-        area = ( r ** 2 ) * np.pi
-        puncta_stats.append([x, y, r, area, punctum_pixel_intensity])
-
-    numpy_puncta_stats = np.array(puncta_stats)
-    pandas_punca_stats = pd.DataFrame(data=numpy_puncta_stats, columns=puncta_stats_columns)
-
-    pandas_punca_stats.to_csv(output_path + 'puncta-stats.csv')
 
 if __name__ == '__main__':
     puncta_analyzer()
