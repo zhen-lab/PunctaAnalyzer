@@ -10,7 +10,6 @@ np.set_printoptions(threshold=np.inf)
 import matplotlib.pyplot as plt
 import tifffile
 from skimage import feature, draw
-from skimage.color import rgb2gray
 
 def area_of_circle(radius):
     return radius ** 2 * np.pi
@@ -65,8 +64,11 @@ def save_puncta_stats(stats, output_path):
         'centroid pixel intensity',
         'mean pixel intensity'
     ]
-    pandas_puncta_stats = pd.DataFrame(data=stats, columns=puncta_stats_columns)
 
+    if stats.size == 0:
+        stats = None
+
+    pandas_puncta_stats = pd.DataFrame(data=stats, columns=puncta_stats_columns)
     pandas_puncta_stats.to_csv(output_path)
 
 # A program to recognize puncta in an image
