@@ -14,8 +14,8 @@ from skimage import feature, draw
 def area_of_circle(radius):
     return radius ** 2 * np.pi
 
-def puncta_density(puncta, img_width):
-    return len(puncta) / img_width
+def puncta_density(num_puncta, img_width):
+    return num_puncta / img_width
 
 def punctum_intensity(puncta_img, punctum):
     y, x, r = punctum
@@ -53,23 +53,15 @@ def compute_puncta_stats(puncta_img, min_sigma, max_sigma, overlap, threshold):
 
         puncta_stats.append([x, y, r, area, centroid_pixel_intensity, punctum_intesity_over_area])
 
-    return np.array(puncta_stats)
+    return np.array(puncta_stats), len(puncta_stats)
 
-def save_puncta_stats(stats, output_path):
-    puncta_stats_columns = [
-        'x',
-        'y',
-        'radius (approximation)',
-        'area (approximation)',
-        'centroid pixel intensity',
-        'mean pixel intensity'
-    ]
-
+def save_stats_to_file(stats, output_path, columns):
     if stats.size == 0:
         stats = None
 
-    pandas_puncta_stats = pd.DataFrame(data=stats, columns=puncta_stats_columns)
-    pandas_puncta_stats.to_csv(output_path)
+    pd_stats = pd.DataFrame(data=stats, columns=columns)
+    pd_stats.to_csv(output_path)
+
 
 # A program to recognize puncta in an image
 # see https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_blob.html#sphx-glr-auto-examples-features-detection-plot-blob-py
@@ -93,17 +85,42 @@ def puncta_analyzer(input_path, output_path, min_sigma, max_sigma, threshold, ov
     else:
         tiff_file_paths.append(str(p.resolve()))
 
+    puncta_stats_columns = [
+        'x',
+        'y',
+        'radius (approximation)',
+        'area (approximation)',
+        'centroid pixel intensity',
+        'mean pixel intensity'
+    ]
+
+    puncta_img_set_stats_columns = [
+        'tiff file path',
+        'tiff image width',
+        'number of puncta',
+        'puncta density'
+    ]
+
+    # This will hold aggregate image stats
+    # e.g. puncta density for each image analyzed
+    puncta_img_set_stats = []
+
     for tiff_file_path in tiff_file_paths:
         # we use tifffile instead of cv2.imread, skimage.imread because
         # tifffile handles loading 16-bit tiff files, while cv2, skimage assume
         # they will be 8-bit tiff files
         puncta_img = tifffile.imread(tiff_file_path)
-        puncta_stats = compute_puncta_stats(puncta_img, min_sigma, max_sigma, overlap, threshold)
+        puncta_img_h, puncta_img_w = puncta_img.shape
+        puncta_stats, num_puncta = compute_puncta_stats(puncta_img, min_sigma, max_sigma, overlap, threshold)
         base_tiff_name = os.path.basename(tiff_file_path)
         tiff_name_no_ext, _ = os.path.splitext(base_tiff_name)
 
-        output_file_name = Path(output_path) / (tiff_name_no_ext + '-puncta-stats-' + time.strftime("%Y%m%d-%H%M%S") + '.csv')
-        save_puncta_stats(puncta_stats, output_file_name.resolve())
+        cur_img_stats_f_name = Path(output_path) / (tiff_name_no_ext + '-puncta-stats-' + time.strftime("%Y%m%d-%H%M%S") + '.csv')
+
+        # save puncta specific stats for each image
+        save_stats_to_file(puncta_stats, cur_img_stats_f_name.resolve(), puncta_stats_columns)
+
+        puncta_img_set_stats.append([tiff_file_path, puncta_img_w, num_puncta, puncta_density(num_puncta, puncta_img_w)])
 
         # if save_annotated:
         #     # show the puncta image
@@ -116,6 +133,9 @@ def puncta_analyzer(input_path, output_path, min_sigma, max_sigma, threshold, ov
         #         y, x, r = punctum
         #         punctum_marker = plt.Circle((x, y), r, color='blue', linewidth=1, fill=False)
         #         ax.add_patch(punctum_marker)
+
+    img_set_stats_output_file_name = Path(output_path) / ('puncta-img-set-stats-' + time.strftime("%Y%m%d-%H%M%S") + '.csv')
+    save_stats_to_file(np.array(puncta_img_set_stats), img_set_stats_output_file_name, puncta_img_set_stats_columns)
 
 if __name__ == '__main__':
     puncta_analyzer()
