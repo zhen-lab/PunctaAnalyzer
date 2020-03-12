@@ -32,7 +32,7 @@ def punctum_intensity(puncta_img, punctum):
     return np.mean(punctum_region_intensity_values)
 
 def find_all_tiff_files(root_path):
-    return [ str(p.resolve()) for p in sorted(root_path.rglob('*.tif')) ]
+    return [ str(p.resolve()) for p in (list(root_path.rglob('*.tif')) + list(root_path.rglob('*.tiff'))) ]
 
 def compute_puncta_stats(puncta_img, min_sigma, max_sigma, overlap, threshold):
     # a puncta is a row of tuples containing (x, y, sigma)
@@ -75,7 +75,7 @@ def save_stats_to_file(stats, output_path, columns):
 @click.option('-ov', '--overlap', type=click.FloatRange(0.0, 1.0), default=0.7, help='If the fraction of overlap between two puncta is greater than this value, remove the smaller puncta', show_default=True)
 @click.option('--save-annotated', is_flag=True, default=False, help='Show recognized puncta in image', show_default=True)
 def puncta_analyzer(input_path, output_path, min_sigma, max_sigma, threshold, overlap, save_annotated):
-    """analyze puncta tiff files"""
+    """analyze puncta in tif files"""
 
     p = Path(input_path)
 
