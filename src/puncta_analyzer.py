@@ -70,9 +70,9 @@ def save_stats_to_file(stats, output_path, columns):
 @click.argument('input_path', nargs=1, type=click.Path(exists=True))
 @click.argument('output_path', nargs=1, type=click.Path(exists=True, file_okay=False))
 @click.option('-lo','--min-sigma', type=click.IntRange(1, 100), default=1, help='Lower values detect smaller puncta', show_default=True)
-@click.option('-hi', '--max-sigma', type=click.IntRange(1, 100), default=5, help='Higher values detect larger puncta', show_default=True)
-@click.option('-t', '--threshold', type=click.FloatRange(0.0, 1.0), default=.2, help='Higher values remove puncta with duller intensity', show_default=True)
-@click.option('-ov', '--overlap', type=click.FloatRange(0.0, 1.0), default=0.9, help='If the fraction of overlap between two puncta is greater than this value, remove the smaller puncta', show_default=True)
+@click.option('-hi', '--max-sigma', type=click.IntRange(1, 100), default=10, help='Higher values detect larger puncta', show_default=True)
+@click.option('-t', '--threshold', type=click.FloatRange(0.0, 1.0), default=.1, help='Higher values remove puncta with duller intensity', show_default=True)
+@click.option('-ov', '--overlap', type=click.FloatRange(0.0, 1.0), default=0.7, help='If the fraction of overlap between two puncta is greater than this value, remove the smaller puncta', show_default=True)
 @click.option('--save-annotated', is_flag=True, default=False, help='Show recognized puncta in image', show_default=True)
 def puncta_analyzer(input_path, output_path, min_sigma, max_sigma, threshold, overlap, save_annotated):
     """analyze puncta tiff files"""
@@ -122,17 +122,24 @@ def puncta_analyzer(input_path, output_path, min_sigma, max_sigma, threshold, ov
 
         puncta_img_set_stats.append([tiff_file_path, puncta_img_w, num_puncta, puncta_density(num_puncta, puncta_img_w)])
 
-        # if save_annotated:
-        #     # show the puncta image
-        #     fig, ax = plt.subplots(1)
-        #     ax.set_title('puncta')
-        #     ax.imshow(np.invert(puncta_img), cmap=plt.cm.binary, aspect='auto')
+        if save_annotated:
+            # show the puncta image
+            fig, ax = plt.subplots(1)
+            ax.set_title('puncta')
+            ax.imshow(np.invert(puncta_img), cmap=plt.cm.binary)
 
-        #     # show where each recognized punctum is on the image
-        #     for punctum in puncta:
-        #         y, x, r = punctum
-        #         punctum_marker = plt.Circle((x, y), r, color='blue', linewidth=1, fill=False)
-        #         ax.add_patch(punctum_marker)
+            # show where each recognized punctum is on the image
+            for punctum in puncta_stats:
+                x, y, r, _, _, _ = punctum
+                punctum_marker = plt.Circle((x, y), r, color='blue', linewidth=1, fill=False)
+                ax.add_patch(punctum_marker)
+
+            fig_save_path = Path(output_path) / ( tiff_name_no_ext + '-annotated-' + time.strftime("%Y%m%d-%H%M%S") + '.png' )
+            plt.savefig(fig_save_path.resolve())
+
+            # show the figure if there is only one file to be processed
+            if len(tiff_file_paths) == 1:
+                plt.show()
 
     img_set_stats_output_file_name = Path(output_path) / ('puncta-img-set-stats-' + time.strftime("%Y%m%d-%H%M%S") + '.csv')
     save_stats_to_file(np.array(puncta_img_set_stats), img_set_stats_output_file_name, puncta_img_set_stats_columns)
