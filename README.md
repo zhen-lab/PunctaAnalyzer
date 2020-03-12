@@ -99,5 +99,5 @@ Analyzed stats and annotated images will be saved in the ```OUTPUT_PATH```
 ### Examples
 if ```INPUT_PATH``` is `a.tif`
 Then ```OUTPUT_PATH``` will contain `a-puncta-stats-<timestamp>.csv` and `puncta-img-set-stats-<timestamp>.csv`
-- `a-puncta-stats-<timestamp>,csv` will contain puncta specific stats
+- `a-puncta-stats-<timestamp>.csv` will contain puncta specific stats
 - `puncta-img-set-stats-<timestamp>.csv` will contain image specific stats
