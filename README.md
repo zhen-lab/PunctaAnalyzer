@@ -60,6 +60,7 @@ Example:
 python src/puncta-analyzer.py ./data/subtracted.tif ./data/
 ```
 
+#### Options
 To view all options, type:
 ```
 python src/puncta-analyzer --help
@@ -82,3 +83,21 @@ Options:
                                   save as an image  [default: False]
   --help                          Show this message and exit.
 ```
+
+
+#### Batch Processing
+
+If ```INPUT_PATH``` is a directory, all tif files in the ```INPUT_PATH``` will be processed
+
+##### Notes
+- Make sure only tif files created from the ```Preprocessor_2``` plugin are in this directory
+- The program won't work for general tif files
+
+## Output
+Analyzed stats and annotated images will be saved in the ```OUTPUT_PATH```
+
+### Examples
+if ```INPUT_PATH``` is `a.tif`
+Then ```OUTPUT_PATH``` will contain `a-puncta-stats-<timestamp>.csv` and `puncta-img-set-stats-<timestamp>.csv`
+- `a-puncta-stats-<timestamp>,csv` will contain puncta specific stats
+- `puncta-img-set-stats-<timestamp>.csv` will contain image specific stats
