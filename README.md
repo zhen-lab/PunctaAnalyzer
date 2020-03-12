@@ -58,6 +58,7 @@ python src/puncta-analyzer.py <src> <dst>
 Example:
 ```
 python src/puncta-analyzer.py ./data/subtracted.tif ./data/
+```
 
 To view all options, type:
 ```
